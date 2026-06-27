@@ -84,6 +84,7 @@ interface BudgetStore {
 
   // Income
   loadIncome: () => Promise<void>;
+  getAllIncomeForMonth: (month: string) => Income[];
   addIncome: (income: Omit<Income, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'syncedAt' | 'month'>) => Promise<void>;
   updateIncome: (id: string, updates: Partial<Income>) => Promise<void>;
   deleteIncome: (id: string) => Promise<void>;
@@ -113,6 +114,7 @@ interface BudgetStore {
   syncToCloud: () => Promise<void>;
   getTotalSpent: (categoryId: string, month?: string) => number;
   getTotalIncome: (month?: string) => number;
+  getTotalIncomeExcluding: (month?: string) => number;
 }
 
 export const useBudgetStore = create<BudgetStore>()(
@@ -224,13 +226,7 @@ export const useBudgetStore = create<BudgetStore>()(
           }, [])
         );
 
-        // Subscribe to income
-        unsubscribes.push(
-          incomeService.subscribe((income) => {
-            // Sort in memory to avoid composite index
-            set({ income: income.sort((a, b) => b.date.getTime() - a.date.getTime()) });
-          }, [])
-        );
+        
 
         // Subscribe to budgets for current month
         const currentMonth = get().currentMonth;
@@ -240,11 +236,24 @@ export const useBudgetStore = create<BudgetStore>()(
           }, [where('month', '==', currentMonth)])
         );
 
+        // Subscribe to income
+        unsubscribes.push(
+          incomeService.subscribe((income) => {
+            const parsedIncome = income.map(inc => ({
+              ...inc,
+              date: inc.date instanceof Date ? inc.date : new Date(inc.date),
+            }));
+            // Sort in memory to avoid composite index
+            set({ income: parsedIncome.sort((a, b) => b.date.getTime() - a.date.getTime()) });
+          }, [where('month', '==', currentMonth)])
+        );
+
         // Subscribe to expenses for current month
         unsubscribes.push(
           expensesService.subscribe((expenses) => {
+            
             // Sort in memory to avoid composite index
-            set({ expenses: expenses.sort((a, b) => b.date.getTime() - a.date.getTime()) });
+            set({ expenses: expenses.sort((a, b) => b.date.localeCompare(a.date)) });
           }, [where('month', '==', currentMonth)])
         );
 
@@ -412,11 +421,19 @@ export const useBudgetStore = create<BudgetStore>()(
       loadIncome: async () => {
         try {
           const income = await incomeService.getAll([]);
+          const parsedIncome = income.map(inc => ({
+            ...inc,
+            date: inc.date instanceof Date ? inc.date : new Date(inc.date),
+          }));
           // Sort in memory to avoid composite index
-          set({ income: income.sort((a, b) => b.date.getTime() - a.date.getTime()) });
+          set({ income: parsedIncome.sort((a, b) => b.date.getTime() - a.date.getTime()) });
         } catch (error) {
           console.error('Failed to load income:', error);
         }
+      },
+
+      getAllIncomeForMonth: (month) => {
+        return get().income.filter(inc => inc.month === month);
       },
 
       addIncome: async (income) => {
@@ -495,18 +512,30 @@ export const useBudgetStore = create<BudgetStore>()(
       },
 
       // Expenses
-      loadExpenses: async (month) => {
-        const targetMonth = month || get().currentMonth;
-        try {
-          const expenses = await expensesService.getAll([
-            where('month', '==', targetMonth)
-          ]);
-          // Sort in memory to avoid composite index
-          set({ expenses: expenses.sort((a, b) => b.date.getTime() - a.date.getTime()) });
-        } catch (error) {
-          console.error('Failed to load expenses:', error);
-        }
-      },
+          loadExpenses: async (month) => {
+      const targetMonth = month || get().currentMonth;
+      try {
+        const expenses = await expensesService.getAll([
+          where('month', '==', targetMonth)
+        ]);
+        
+        const parsedExpenses = expenses.map(exp => {
+
+          return {
+            ...exp,
+            date: (exp.date as any).toDate().toISOString().split('T')[0], // 🔥 Sekarang dijamin 100% berupa JavaScript Date object yang valid
+          };
+        });
+
+        // Proses sort sekarang dijamin aman karena .date sudah pasti objek Date asli
+        const sortedExpenses = parsedExpenses.sort((a, b) => b.date.localeCompare(a.date));
+        
+        set({ expenses: sortedExpenses });
+      } catch (error) {
+        console.error('Failed to load expenses:', error);
+      }
+    },
+
 
       addExpense: async (expense) => {
         try {
@@ -598,6 +627,12 @@ export const useBudgetStore = create<BudgetStore>()(
           .income.filter((inc) => inc.month === targetMonth)
           .reduce((sum, inc) => sum + inc.amount, 0);
       },
+      getTotalIncomeExcluding: (month) => {
+        const targetMonth = month || get().currentMonth;
+        return get()
+          .income.filter((inc) => inc.month === targetMonth && !inc.isExcluded)
+          .reduce((sum, inc) => sum + inc.amount, 0);
+      }
     }),
     {
       name: 'budget-storage',

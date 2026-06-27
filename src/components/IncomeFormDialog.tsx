@@ -21,6 +21,7 @@ export function IncomeFormDialog({ open, onOpenChange }: IncomeFormDialogProps) 
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExcluded, setIsExcluded] = useState(false);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatIDRInput(e.target.value);
@@ -39,6 +40,7 @@ export function IncomeFormDialog({ open, onOpenChange }: IncomeFormDialogProps) 
         description,
         date: new Date(date),
         recurring: false,
+        isExcluded: isExcluded,
       });
 
       // Reset form
@@ -46,6 +48,7 @@ export function IncomeFormDialog({ open, onOpenChange }: IncomeFormDialogProps) 
       setType('salary');
       setDescription('');
       setDate(new Date().toISOString().split('T')[0]);
+      setIsExcluded(false);
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to add income:', error);
@@ -114,6 +117,15 @@ export function IncomeFormDialog({ open, onOpenChange }: IncomeFormDialogProps) 
                 onChange={(e) => setDate(e.target.value)}
                 className="text-base"
                 required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="excluded" className="text-sm">Exclude from Budget Calculation</Label>
+              <Input
+                id="excluded"
+                type="checkbox"
+                checked={isExcluded}
+                onChange={(e) => setIsExcluded(e.target.checked)}
               />
             </div>
           </div>

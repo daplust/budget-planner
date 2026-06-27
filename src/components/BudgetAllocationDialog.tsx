@@ -15,13 +15,13 @@ interface BudgetAllocationDialogProps {
 }
 
 export function BudgetAllocationDialog({ open, onOpenChange }: BudgetAllocationDialogProps) {
-  const { categories, budgets, currentMonth, setBudget, getTotalIncome } = useBudgetStore();
+  const { categories, budgets, currentMonth, setBudget, getTotalIncomeExcluding } = useBudgetStore();
   const [mode, setMode] = useState<AllocationMode>('amount');
   const [allocations, setAllocations] = useState<Record<string, string>>({});
   const [percentages, setPercentages] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const totalIncome = getTotalIncome(currentMonth);
+  const totalIncome = getTotalIncomeExcluding(currentMonth);
 
   useEffect(() => {
     console.log('💰 BudgetAllocationDialog - Categories:', categories.length, categories);

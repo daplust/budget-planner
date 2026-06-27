@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatIDR } from '@/lib/currency';
-import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 import type { Expense, BudgetCategory } from '@/types';
+import { isValid, format, parseISO } from 'date-fns';
 
 interface RecentExpensesProps {
   expenses: Expense[];
@@ -44,6 +45,12 @@ export function RecentExpenses({ expenses, categories, limit = 5 }: RecentExpens
         <div className="space-y-2 sm:space-y-3">
           {recentExpenses.map((expense) => {
             const category = getCategoryById(expense.categoryId);
+            const dataObj = parseISO(expense.date);
+
+            // 2. Validasi & Format (Gunakan locale: id agar bulannya menjadi "Jun" bukan "June")
+            const formattedDate = isValid(dataObj)
+              ? format(dataObj, 'dd MMM yyyy', { locale: id }) 
+              : '-';
             return (
               <div
                 key={expense.id}
@@ -54,7 +61,7 @@ export function RecentExpenses({ expenses, categories, limit = 5 }: RecentExpens
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm sm:text-base truncate">{expense.description}</p>
                     <div className="flex items-center gap-1 sm:gap-2 text-xs text-muted-foreground flex-wrap">
-                      <span className="whitespace-nowrap">{format(expense.date, 'MMM dd, yyyy')}</span>
+                      <span className="whitespace-nowrap">{formattedDate}</span>
                       <span className="hidden sm:inline">•</span>
                       <span className="truncate">{category?.name}</span>
                     </div>

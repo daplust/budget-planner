@@ -33,9 +33,11 @@ export interface Income extends CloudSyncBase {
   recurring: boolean;
   recurringFrequency?: RecurringFrequency;
   month: string; // Format: 'YYYY-MM'
+  isExcluded?: boolean; // Flag to indicate if this income should be excluded from budget calculations
 }
 
 export interface Budget extends CloudSyncBase {
+  sourceId?: string; // Optional reference to the source of the budget (e.g., income ID)
   month: string; // Format: 'YYYY-MM'
   categoryId: string;
   allocated: number;
@@ -45,7 +47,7 @@ export interface Budget extends CloudSyncBase {
 }
 
 export interface Expense extends CloudSyncBase {
-  date: Date;
+  date: string; // Can be a string or Date object
   categoryId: string;
   amount: number;
   description: string;

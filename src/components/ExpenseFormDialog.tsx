@@ -88,14 +88,11 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState<Date>(new Date());
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Debug logging
-  console.log('📝 ExpenseFormDialog - Categories:', categories.length, categories);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -118,6 +115,14 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
     }
   }, [open]);
 
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value; 
+        if (!inputValue) return;
+
+        const [year, month, day] = inputValue.split("-").map(Number);
+        setDate(new Date(year, month - 1, day)); 
+  };
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatIDRInput(e.target.value);
     setAmount(formatted);
@@ -133,7 +138,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
         amount: parseIDR(amount),
         categoryId,
         description,
-        date: new Date(date),
+        date: date.toISOString(),
         tags: selectedTags,
         recurring: false,
       });
@@ -142,7 +147,7 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
       setAmount('');
       setCategoryId('');
       setDescription('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(new Date());
       setSelectedTags([]);
       onOpenChange(false);
     } catch (error) {
@@ -300,8 +305,8 @@ export function ExpenseFormDialog({ open, onOpenChange }: ExpenseFormDialogProps
               <Input
                 id="date"
                 type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
+                value={date.toISOString().split('T')[0]}
+                onChange={handleDateChange}
                 className="text-base"
                 required
               />
